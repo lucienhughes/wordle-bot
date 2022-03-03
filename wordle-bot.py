@@ -1,8 +1,6 @@
 # %%
 import pandas as pd
-
 import string
-
 import re
 
 # %%
@@ -11,7 +9,7 @@ def load_dictionary():
     for letter in list(string.ascii_uppercase):
         # print(f"word-library/{letter}word.csv")
         # Read dataframe:
-        awordframe = pd.read_csv(f"word-library/{letter}word.csv",header=None,sep="rwerere",quoting=3,encoding='cp1252')
+        awordframe = pd.read_csv(f"word-library/{letter}word.csv",header=None,sep="rwerere",quoting=3,encoding='cp1252',engine='python')
         # Remove whitespace:
         awordframe[0] = awordframe[0].str.replace(' ', '')
         # Filter to only 5-letter words
@@ -38,23 +36,35 @@ def find_best_letters(possible_words):
     return best_letters
 
 # %%
-def rank_words_by_closeness(possible_words,word):
-    possible_words['score'] = 0
-    for w_no in range(len(possible_words)):
-        w = possible_words['word'][w_no]
+def determine_uniqueness(word):
+    return len(set(word)) == 5
+
+# %%
+def rank_words_by_closeness(words,word,turn_counter):
+    words['score'] = 0
+    for w_no in range(len(words)):
+        w = words['word'][w_no]
         score = 0
         for letternum in range(len(w)):
             if word[letternum] == w[letternum]:
                 score += 1 
-        possible_words.at[w_no, 'score'] = score
-    best_ranked_word = possible_words.loc[possible_words['score'].idxmax()]['word']
+        words.at[w_no, 'score'] = score
+    if turn_counter == 0:
+        # Remove words with duplicate letters if first turn to eliminate more letters
+        words = words.loc[words.apply(lambda x: determine_uniqueness(x['word']),axis=1)]
+    best_ranked_word = words.loc[words['score'].idxmax()]['word']
     return best_ranked_word
 
 # %%
 def remove_implausible_words(word,result,possible_words):
+    included_letters = []
     for letterno in range(5):
-        if result[letterno] == 'x':
-            possible_worlds = possible_words[~(possible_words['word'].str.contains(word[letterno]))]
+        # Excludes weird cases where green letters are marked as grey
+        if result[letterno] != 'x':
+            included_letters.append(word[letterno])
+    for letterno in range(5):
+        if (result[letterno] == 'x') and (word[letterno] not in included_letters):
+            possible_words = possible_words[~(possible_words['word'].str.contains(word[letterno]))]
         if result[letterno] == 'y':
             possible_words = possible_words[~(possible_words['word'].str[letterno] == word[letterno])]
             possible_words = possible_words[possible_words['word'].str.contains(word[letterno])]
@@ -70,7 +80,7 @@ def play_game():
     turn_counter = 0
     while not win:
         best_letters = find_best_letters(possible_words)
-        optimal_word = rank_words_by_closeness(possible_words,best_letters)
+        optimal_word = rank_words_by_closeness(possible_words,best_letters,turn_counter)
         print('Recommended word:')
         print(optimal_word)
         possible_words = possible_words.loc[possible_words['word'] != optimal_word].reset_index(drop=True)
@@ -97,6 +107,7 @@ def play_game():
                 break
             elif word_winner == 'y':
                 print(f"Congratulations! Won in {turn_counter} guesses!")
+                win = True
                 break
             possible_words = remove_implausible_words(optimal_word,result,possible_words)
         else:
