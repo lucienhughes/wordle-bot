@@ -51,7 +51,7 @@ def rank_words_by_closeness(possible_words,word):
     return best_ranked_word
 
 # %%
-def remove_implausible_words(possible_words,result):
+def remove_implausible_words(word,result,possible_words):
     for letterno in range(5):
         if result[letterno] == 'x':
             possible_worlds = possible_words[~(possible_words['word'].str.contains(word[letterno]))]
@@ -67,6 +67,7 @@ def remove_implausible_words(possible_words,result):
 def play_game():
     possible_words = load_dictionary()
     win = False
+    turn_counter = 0
     while not win:
         best_letters = find_best_letters(possible_words)
         optimal_word = rank_words_by_closeness(possible_words,best_letters)
@@ -79,12 +80,25 @@ def play_game():
             print('Invalid input. Was word accepted? y/n')
             word_valid = input()
         if word_valid == 'y':
-            print('Please enter the result: (key: x = blank, y = yellow, g = green)')
-            result = input()
-            while not (bool(re.match("[xyg]{5}", result)) and  len(result) == 5):
-                print('Invalid Input. Please enter the result: (key: x = blank, y = yellow, g = green)')
+            turn_counter += 1
+            print('Did the word win? y/n')
+            word_winner = input()
+            while word_winner not in ['y','n']:
+                print('Invalid input. Did the word win? y/n')
+                word_winner = input()
+            if word_winner == 'n' and turn_counter < 6:
+                print('Please enter the result: (key: x = blank, y = yellow, g = green)')
                 result = input()
-            possible_words = remove_implausible_words(possible_words,result)
+                while not (bool(re.match("[xyg]{5}", result)) and  len(result) == 5):
+                    print('Invalid Input. Please enter the result: (key: x = blank, y = yellow, g = green)')
+                    result = input()
+            elif word_winner == 'n' and turn_counter >= 6:
+                print("Sorry, I couldn't guess the wordle!")
+                break
+            elif word_winner == 'y':
+                print(f"Congratulations! Won in {turn_counter} guesses!")
+                break
+            possible_words = remove_implausible_words(optimal_word,result,possible_words)
         else:
             pass
 
