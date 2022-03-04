@@ -25,12 +25,18 @@ def load_dictionary():
 
 # %%
 def find_best_letters(possible_words):
+    # print("fbl plausible words:")
+    # print(possible_words)
     best_letters = []
     for letter_num in [1,2,3,4,5]:
         letter_freq = possible_words.copy()
-        letter_freq['word'] = possible_words['word'].str[letter_num-1:letter_num]
+        letter_freq['word'] = letter_freq['word'].str[letter_num-1:letter_num]
+        # print(f"df of letter {letter_num}")
+        # print(letter_freq)
         letter_freq = letter_freq.groupby(['word']).size().reset_index(name='counts')
-        letter_freq = letter_freq.loc[~letter_freq['word'].isin(best_letters)]
+        # letter_freq = letter_freq.loc[~letter_freq['word'].isin(best_letters)]
+        # print("Letter freq:")
+        # print(letter_freq)
         most_likely_letter = letter_freq.loc[letter_freq['counts'].idxmax()]['word']
         best_letters.append(most_likely_letter)
     return best_letters
@@ -57,20 +63,26 @@ def rank_words_by_closeness(words,word,turn_counter):
 
 # %%
 def remove_implausible_words(word,result,possible_words):
+    # print("Input words:")
+    # print(possible_words)
     included_letters = []
     for letterno in range(5):
         # Excludes weird cases where green letters are marked as grey
         if result[letterno] != 'x':
             included_letters.append(word[letterno])
+    # print("included_letters:")
+    # print(included_letters)
     for letterno in range(5):
         if (result[letterno] == 'x') and (word[letterno] not in included_letters):
-            possible_words = possible_words[~(possible_words['word'].str.contains(word[letterno]))]
+            possible_words = possible_words.loc[~(possible_words['word'].str.contains(word[letterno]))]
         if result[letterno] == 'y':
-            possible_words = possible_words[~(possible_words['word'].str[letterno] == word[letterno])]
-            possible_words = possible_words[possible_words['word'].str.contains(word[letterno])]
+            possible_words = possible_words.loc[~(possible_words['word'].str[letterno] == word[letterno])]
+            possible_words = possible_words.loc[possible_words['word'].str.contains(word[letterno])]
         if result[letterno] == 'g':
-            possible_words = possible_words[possible_words['word'].str[letterno] == word[letterno]]      
+            possible_words = possible_words.loc[possible_words['word'].str[letterno] == word[letterno]]      
     possible_words = possible_words.reset_index(drop=True)
+    # print("Output plausible words:")
+    # print(possible_words)
     return possible_words
 
 # %%
@@ -78,12 +90,32 @@ def play_game():
     possible_words = load_dictionary()
     win = False
     turn_counter = 0
+    starting_word = 'na'
+    print('Choose your own starting word? y/n')
+    starting_choice = input()
+    while starting_choice not in ['y','n']:
+        print('Invalid input. Choose your own starting word? y/n')
+        starting_choice = input()
+    if starting_choice == 'y':
+        print('Enter starting word:')
+        starting_word = input()
+        while not (bool(re.match("[a-z]{5}", starting_word)) and  len(starting_word) == 5):
+            print('Invalid input. Not a 5 letter lowercase word')
+            starting_word = input()
+    else:
+        pass
     while not win:
-        best_letters = find_best_letters(possible_words)
-        optimal_word = rank_words_by_closeness(possible_words,best_letters,turn_counter)
-        print('Recommended word:')
-        print(optimal_word)
-        possible_words = possible_words.loc[possible_words['word'] != optimal_word].reset_index(drop=True)
+        if starting_choice == 'n':
+            best_letters = find_best_letters(possible_words)
+            optimal_word = rank_words_by_closeness(possible_words,best_letters,turn_counter)
+            print('Recommended word:')
+            print(optimal_word)
+            possible_words = possible_words.loc[possible_words['word'] != optimal_word].reset_index(drop=True)
+        else:
+            optimal_word = starting_word
+            possible_words = possible_words.loc[possible_words['word'] != optimal_word].reset_index(drop=True)
+            starting_choice = 'n'
+
         print('Was word accepted? y/n')
         word_valid = input()
         while word_valid not in ['y','n']:
