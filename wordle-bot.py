@@ -86,6 +86,18 @@ def remove_implausible_words(word,result,possible_words):
     return possible_words
 
 # %%
+def score_word(word,answer):
+    result = ""
+    for letterno in range(5):
+        if word[letterno] == answer[letterno]:
+            result += 'g'
+        elif word[letterno] in answer:
+            result += 'y'
+        elif word[letterno] not in answer:
+            result += 'x'
+    return result
+
+# %%
 def play_game():
     possible_words = load_dictionary()
     win = False
@@ -142,8 +154,42 @@ def play_game():
                 win = True
                 break
             possible_words = remove_implausible_words(optimal_word,result,possible_words)
+            if len(possible_words) == 0:
+                print("Sorry, it seems the answer isn't in my internal dictionary!")
+                break
         else:
             pass
+
+# %%
+def autoplay_game(target_words):
+    for answer in target_words:
+        possible_words = load_dictionary()
+        win = False
+        turn_counter = 0
+        while not win:
+            best_letters = find_best_letters(possible_words)
+            optimal_word = rank_words_by_closeness(possible_words,best_letters,turn_counter)
+            print('Recommended word:')
+            print(optimal_word)
+            possible_words = possible_words.loc[possible_words['word'] != optimal_word].reset_index(drop=True) 
+            # Unfortunately, it is not possible to validate whether a word is allowed when autoplaying,
+            # as we do not have access to the Wordle master accepted word list.
+            turn_counter += 1
+            word_winner = (optimal_word == answer)
+            if word_winner:
+                print(f"Congratulations! Won in {turn_counter} guesses!")
+                win = True
+                break
+            elif ~word_winner and turn_counter < 6:
+                result = score_word(optimal_word,answer)
+            elif ~word_winner and turn_counter >= 6:
+                print("Sorry, I couldn't guess the wordle!")
+                break               
+            possible_words = remove_implausible_words(optimal_word,result,possible_words)
+            if len(possible_words) == 0:
+                print("Sorry, it seems the answer isn't in my internal dictionary!")
+                break   
+
 
 # %%
 if __name__ == "__main__":
