@@ -5,9 +5,8 @@ import re
 
 # %%
 def load_dictionary():
-    words_df = pd.DataFrame({"word": pd.Series(dtype="str")})
+    words_list = []  # List to store all the words from CSV files
     for letter in list(string.ascii_uppercase):
-        # print(f"word-library/{letter}word.csv")
         # Read dataframe:
         awordframe = pd.read_csv(
             f"word-library/{letter}word.csv",
@@ -22,13 +21,15 @@ def load_dictionary():
         # Filter to only 5-letter words
         awordframe = awordframe.loc[awordframe[0].str.len() == 5]
         # Filter to only words without punctuation:
-        awordframe = awordframe.loc[awordframe[0].str.contains("[a-z]{5}")]
+        awordframe = awordframe.loc[awordframe[0].str.contains("^[a-z]{5}$")]
         # Filter to only unique results
         awordframe = awordframe[0].unique()
-        # Append to words_df:
-        words_df = words_df.append(pd.DataFrame({"word": awordframe}))
-    words_df = words_df.reset_index(drop=True)
-    return words_df
+        # Append to words_list:
+        words_list.extend(awordframe.tolist())
+    
+    # Convert list to DataFrame
+    words_df = pd.DataFrame({"word": words_list})
+    return words_df.reset_index(drop=True)
 
 
 # %%
